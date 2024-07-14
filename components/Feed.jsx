@@ -17,19 +17,41 @@ const PromptCardList = ({ data, handleTagClick }) => {
 };
 
 function Feed() {
-  const [searchText, setSerachText] = useState("");
+  const [searchText, setSearchText] = useState("");
   const [posts, setPosts] = useState([]);
-  const handleSearchChange = (e) => {};
+  const [filteredPosts, setFilteredPosts] = useState([]);
+  const [debounceTimeout, setDebounceTimeout] = useState(null);
+
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchText(value);
+
+    if (debounceTimeout) {
+      clearTimeout(debounceTimeout);
+    }
+
+    setDebounceTimeout(
+      setTimeout(() => {
+        const filterData = posts.filter(
+          (p) =>
+             p.prompt.toLowerCase().includes(value.toLowerCase()) ||
+            p.tag.toLowerCase().includes(value.toLowerCase())
+        );
+        setFilteredPosts(filterData);
+      }, 500)
+    );
+  };
 
   useEffect(() => {
     const fetchPost = async () => {
       const response = await fetch('/api/promt');
       const data = await response.json();
       setPosts(data);
+      setFilteredPosts(data); // Initially set filteredPosts to all posts
     };
-    console.log(posts);
     fetchPost();
   }, []);
+
   return (
     <div>
       <section className="feed">
@@ -43,7 +65,14 @@ function Feed() {
             className="search_input peer"
           />
         </form>
-        <PromptCardList data={posts} handleTagClick={() => {}} />
+        {searchText ? (
+          <PromptCardList
+            data={filteredPosts}
+            handleTagClick={handleSearchChange}
+          />
+        ) : (
+          <PromptCardList data={posts} handleTagClick={handleSearchChange} />
+        )}
       </section>
     </div>
   );
